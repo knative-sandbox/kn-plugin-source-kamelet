@@ -90,14 +90,50 @@ func TestDescribeTypeOutput(t *testing.T) {
 
 	assert.Check(t, util.ContainsAll(outputLines[0], "Name:", "k1"))
 	assert.Check(t, util.ContainsAll(outputLines[1], "Namespace:", "default"))
-	assert.Check(t, util.ContainsAll(outputLines[2], "Labels:", "camel.apache.org/kamelet.type=source"))
+	assert.Check(t, util.ContainsAll(outputLines[2], "Labels:", "camel.apache.org/kamelet.type=source", "camel.apache.org/kamelet.provider=Community"))
 	assert.Check(t, util.ContainsAll(outputLines[3], "Age:", "0s"))
 	assert.Check(t, util.ContainsAll(outputLines[4], "Description:", "Kamelet k1 - Sample Kamelet source"))
-	assert.Check(t, util.ContainsAll(outputLines[5], "Phase:", "Ready"))
+	assert.Check(t, util.ContainsAll(outputLines[5], "Provider:", "Community"))
+	assert.Check(t, util.ContainsAll(outputLines[6], "Phase:", "Ready"))
 
-	assert.Check(t, util.ContainsAll(outputLines[7], "Conditions:"))
-	assert.Check(t, util.ContainsAll(outputLines[8], "OK", "TYPE", "AGE", "REASON"))
-	assert.Check(t, util.ContainsAll(outputLines[9], "++", "Ready", "", ""))
+	assert.Check(t, util.ContainsAll(outputLines[8], "Properties:", "k1_prop, k1_optional"))
+
+	assert.Check(t, util.ContainsAll(outputLines[10], "Conditions:"))
+	assert.Check(t, util.ContainsAll(outputLines[11], "OK", "TYPE", "AGE", "REASON"))
+	assert.Check(t, util.ContainsAll(outputLines[12], "++", "Ready", "", ""))
+
+	recorder.Validate()
+}
+
+func TestDescribeTypeVerboseOutput(t *testing.T) {
+	mockClient := client.NewMockKameletClient(t)
+	recorder := mockClient.Recorder()
+
+	kamelet := createKamelet("k1")
+	recorder.Get(kamelet, nil)
+
+	output, err := runDescribeTypeCmd(mockClient, "k1", "--verbose")
+	assert.NilError(t, err)
+
+	outputLines := strings.Split(output, "\n")
+
+	assert.Check(t, util.ContainsAll(outputLines[0], "Name:", "k1"))
+	assert.Check(t, util.ContainsAll(outputLines[1], "Namespace:", "default"))
+	assert.Check(t, util.ContainsAll(outputLines[2], "Labels:", "camel.apache.org/kamelet.provider=Community"))
+	assert.Check(t, util.ContainsAll(outputLines[3], "camel.apache.org/kamelet.type=source"))
+	assert.Check(t, util.ContainsAll(outputLines[4], "Age:", "0s"))
+	assert.Check(t, util.ContainsAll(outputLines[5], "Description:", "Kamelet k1 - Sample Kamelet source"))
+	assert.Check(t, util.ContainsAll(outputLines[6], "Provider:", "Community"))
+	assert.Check(t, util.ContainsAll(outputLines[7], "Phase:", "Ready"))
+
+	assert.Check(t, util.ContainsAll(outputLines[9], "Properties:"))
+	assert.Check(t, util.ContainsAll(outputLines[10], "Name", "Required", "Type", "Description"))
+	assert.Check(t, util.ContainsAll(outputLines[11], "k1_prop", "true", "string", "The k1 required property"))
+	assert.Check(t, util.ContainsAll(outputLines[12], "k1_optional", "false", "boolean", "The k1 optional property"))
+
+	assert.Check(t, util.ContainsAll(outputLines[14], "Conditions:"))
+	assert.Check(t, util.ContainsAll(outputLines[15], "OK", "TYPE", "AGE", "REASON"))
+	assert.Check(t, util.ContainsAll(outputLines[16], "++", "Ready", "", ""))
 
 	recorder.Validate()
 }

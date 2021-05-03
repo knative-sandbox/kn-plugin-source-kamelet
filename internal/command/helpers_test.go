@@ -41,7 +41,8 @@ func createKameletInNamespace(kameletName string, namespace string) *camelkv1alp
 			Name:              kameletName,
 			CreationTimestamp: v1.Now(),
 			Labels: map[string]string{
-				"camel.apache.org/kamelet.type": "source",
+				"camel.apache.org/kamelet.type":     "source",
+				"camel.apache.org/kamelet.provider": "Community",
 			},
 			SelfLink: fmt.Sprintf("/apis/camel.apache.org/v1alpha1/namespaces/default/kamelets/%s", kameletName),
 		},
@@ -49,6 +50,17 @@ func createKameletInNamespace(kameletName string, namespace string) *camelkv1alp
 			Definition: &camelkv1alpha1.JSONSchemaProps{
 				Title:       "Kamelet " + kameletName,
 				Description: "Sample Kamelet source",
+				Required:    []string{kameletName + "_prop"},
+				Properties: map[string]camelkv1alpha1.JSONSchemaProps{
+					kameletName + "_prop": {
+						Type:        "string",
+						Description: fmt.Sprintf("The %s required property", kameletName),
+					},
+					kameletName + "_optional": {
+						Type:        "boolean",
+						Description: fmt.Sprintf("The %s optional property", kameletName),
+					},
+				},
 			},
 		},
 		Status: camelkv1alpha1.KameletStatus{
