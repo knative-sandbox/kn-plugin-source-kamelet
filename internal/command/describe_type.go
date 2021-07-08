@@ -19,6 +19,7 @@ package command
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
@@ -126,7 +127,64 @@ func writeKamelet(dw printers.PrefixWriter, kamelet *v1alpha1.Kamelet, printDeta
 		dw.WriteAttribute("Description", kamelet.Spec.Definition.Description)
 	}
 
+	dw.WriteAttribute("Provider", extractKameletProvider(kamelet))
 	dw.WriteAttribute("Phase", string(kamelet.Status.Phase))
+
+	dw.WriteLine()
+	writeKameletProperties(dw, kamelet, printDetails)
+}
+
+func writeKameletProperties(dw printers.PrefixWriter, kamelet *v1alpha1.Kamelet, printDetails bool) {
+	label := "Properties"
+	if printDetails {
+		section := dw.WriteAttribute("Properties", "")
+		maxLen := getMaxPropertyNameLen(kamelet.Spec.Definition.Properties)
+		format := "%-" + maxLen + "s %-8s %-8s %s\n"
+		section.Writef(format, "Name", "Required", "Type", "Description")
+		for name, property := range kamelet.Spec.Definition.Properties {
+			section.Writef(format, name, isRequired(name, kamelet.Spec.Definition.Required), property.Type, property.Description)
+		}
+	} else {
+		result := ""
+		maxWidth := commands.TruncateAt - len(label) - 2
+		for name := range kamelet.Spec.Definition.Properties {
+			result += fmt.Sprintf("%s, ", name)
+			if len(result) > maxWidth {
+				break
+			}
+		}
+		// cut of two latest chars
+		result = strings.TrimRight(result, ", ")
+		if len(result) > maxWidth {
+			result = result[:maxWidth-4] + " ..."
+		}
+
+		dw.WriteColsLn(printers.Label(label), result)
+	}
+}
+
+func isRequired(name string, required []string) string {
+	for _, propertyName := range required {
+		if propertyName == name {
+			return "true"
+		}
+	}
+
+	return "false"
+}
+
+func getMaxPropertyNameLen(properties map[string]v1alpha1.JSONSchemaProps) string {
+	max := 0
+	for name := range properties {
+		if len(name) > max {
+			max = len(name)
+		}
+	}
+	return strconv.Itoa(max)
+}
+
+func extractKameletProvider(kamelet *v1alpha1.Kamelet) string {
+	return kamelet.Labels["camel.apache.org/kamelet.provider"]
 }
 
 func isEventSourceType(kamelet *v1alpha1.Kamelet) bool {
